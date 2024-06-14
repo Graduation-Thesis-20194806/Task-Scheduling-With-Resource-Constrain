@@ -19,12 +19,24 @@ def generate_tasks(num_tasks, project_start_date, project_duration_days):
     tasks = []
 
     def random_date(start, end):
+        if end <= start:
+            return start
         return start + timedelta(days=random.randint(0, (end - start).days))
 
     project_end_date = project_start_date + timedelta(days=project_duration_days)
 
+    dev_tasks = []
+    test_tasks = []
+    design_tasks = []
+
     for i in range(1, num_tasks + 1):
-        task_type = random.choice(task_types)
+        # Ensure task counts follow the required relationship
+        if len(dev_tasks) <= len(test_tasks) or len(test_tasks) <= len(design_tasks):
+            task_type = 'Dev' if len(dev_tasks) <= len(test_tasks) else 'Test'
+            task_type = 'Test' if len(test_tasks) <= len(design_tasks) else task_type
+        else:
+            task_type = random.choice(task_types)
+
         priority = random.randint(1, 5)
         effort = random.randint(1, 24)
 
@@ -44,13 +56,20 @@ def generate_tasks(num_tasks, project_start_date, project_duration_days):
         else:
             earliest_start = random_date(project_start_date, project_end_date - timedelta(days=effort))
 
-        latest_end = earliest_start + timedelta(hours=effort)
+        latest_end = random_date(earliest_start + timedelta(hours=effort), project_end_date)
 
         if dependencies:
             latest_end = max(latest_end, max(d.latest_end for d in dependencies))
 
         task = Task(i, task_type, priority, effort, [d.task_id for d in dependencies], earliest_start, latest_end)
         tasks.append(task)
+
+        if task_type == 'Dev':
+            dev_tasks.append(task)
+        elif task_type == 'Test':
+            test_tasks.append(task)
+        elif task_type == 'Design':
+            design_tasks.append(task)
 
     return tasks
 
@@ -72,15 +91,15 @@ def write_tasks_to_csv(tasks, filename):
 
 
 # Define project parameters
-num_tasks = 400
+num_tasks = 600
 project_start_date = datetime(2024, 7, 1)
-project_duration_days = 90
+project_duration_days = 400
 
 # Generate tasks
 tasks = generate_tasks(num_tasks, project_start_date, project_duration_days)
 
 # Write tasks to CSV
-csv_filename = 'dataset/project_tasks.csv'
+csv_filename = 'dataset/project_tasks600_2.csv'
 write_tasks_to_csv(tasks, csv_filename)
 
 print(f'Tasks have been written to {csv_filename}')
